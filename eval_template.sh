@@ -1,15 +1,15 @@
 #!/bin/bash
+
 MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
 SAVE_DIR="results"
 DATA_DIR="data"
-EVAL_PPL=3 #设置n_ppl
+EVAL_PPL=3  # 设置 n_ppl
 MAX_TOKEN=2048
 BATCH_SIZE=8
 TEMPERATURE=0.7
 TOP_P=0.9
-NGPUS=4 
+NGPUS=1
 CONFIG="distill_qwen_7B_3ppl"
- 
 
 python main_eval.py \
     --model $MODEL_PATH \
@@ -23,4 +23,4 @@ python main_eval.py \
     --eval_nppl $EVAL_PPL \
     --problem_type clean \
     --config $CONFIG \
-    --ngpus $NGPUS  
+    --ngpus $NGPUS
