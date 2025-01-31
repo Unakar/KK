@@ -6,19 +6,19 @@ NODE_RANK=$1  # 接受节点等级参数
 ###############################
 export NUMEXPR_MAX_THREADS=128       # 数值计算最大线程数
 export RAY_DEDUP_LOGS=0              # 禁用Ray日志去重
-
+rm -rf ~/.cache/torch_extensions/
 ###############################
 ### 关键凭证与路径配置
 ###############################
 wandb_token="fafd69135210d3684f64d5676b5933814655295e"                    # WandB鉴权令牌
-DATA_PATH="xxx"                      # 训练数据路径
+DATA_PATH="/home/t2vg-a100-G4-43/mem-kk-logic/kk_train_data/3ppl.jsonl"   # 训练数据路径
 
 ###############################
 ### 模型与训练参数
 ###############################
 MODEL_NAME="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"  # 基础模型名称
 REWARD_MODEL="kk_server"       # 奖励模型标识符
-SAVE_MODEL_NAME="${MODEL_NAME}_${REWARD_MODEL}"  # 保存模型名称
+SAVE_MODEL_NAME=$(echo "${MODEL_NAME}_${REWARD_MODEL}" | sed 's|/|_|g')  # 保存模型名称（替换斜杠）
 
 # 采样与训练控制
 N_SAMPLES=8                          # 每个提示的采样数
@@ -45,10 +45,29 @@ mkdir -p "results/${SAVE_MODEL_NAME}/server"  # 创建结果目录
 mkdir -p "${LOG_BASE}/server/"                # 创建日志目录
 
 ###############################
+### Ray集群初始化
+###############################
+# 确保没有遗留的Ray进程
+ray stop
+
+# 启动Ray集群
+ray start --head \
+    --port=6379 \
+    --dashboard-port=8265 \
+    --num-gpus=4 \
+    --dashboard-host=0.0.0.0
+
+# 等待Ray集群启动
+sleep 10
+
+###############################
 ### 奖励模型服务管理
 ###############################
 # 终止现有奖励模型服务
 pkill -f "${REWARD_MODEL}"
+
+# 确保日志目录存在
+mkdir -p "$(dirname "${LOG_BASE}/server/${SAVE_MODEL_NAME}-node${NODE_RANK}.log")"
 
 # 启动奖励模型服务
 nohup python -m "openrlhf.cli.${REWARD_MODEL}" \
